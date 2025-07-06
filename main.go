@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"learning-lm-go/model"
+	"path"
 	"path/filepath"
 	"runtime"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
+	"github.com/daulet/tokenizers"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,4 +40,13 @@ func main() {
 		panic("Loading model failed")
 	}
 	logrus.Debug("Llama: ", llama)
+	tk, err := tokenizers.FromFile(path.Join(model_dir, "tokenizer.json"))
+	if err != nil {
+		logrus.Fatal("Faile to load tokenizer: ", err)
+		panic("Loading tokenizer failed")
+	}
+	input_tokens, _ := tk.Encode("The Gophers craft code using Go language.", false)
+
+	output_tokens := llama.Generate(input_tokens)
+	logrus.Info("Output tokens: ", output_tokens)
 }

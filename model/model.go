@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"learning-lm-go/safetensors"
 	"os"
 	"path/filepath"
 
@@ -28,7 +27,8 @@ type SafeTensors struct {
 }
 
 type Llama struct {
-	Vocab int
+	Vocab  int
+	Params *LlamaParams
 }
 
 func FromSafeTensors(modelDir string) (*Llama, error) {
@@ -45,11 +45,18 @@ func FromSafeTensors(modelDir string) (*Llama, error) {
 	logrus.Debug("Config: ", config)
 
 	modelPath := filepath.Join(modelDir, "model.safetensors")
-	SafeTensors, err := safetensors.Parse(modelPath)
+	params, err := Parse(modelPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse model file: %v", err)
 	}
-	logrus.Debug("SafeTensors: ", SafeTensors)
+	logrus.Debug("LlamaParams: ", params)
 
-	return nil, nil
+	return &Llama{
+		Vocab:  config.VocabSize,
+		Params: params,
+	}, nil
+}
+
+func (llama *Llama) Generate(tokens []uint32) []uint32 {
+	return []uint32{}
 }

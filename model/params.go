@@ -1,4 +1,4 @@
-package safetensors
+package model
 
 import (
 	"encoding/binary"
@@ -20,7 +20,10 @@ type MetaData struct {
 type Safetensors struct {
 }
 
-func Parse(filePath string) (*Safetensors, error) {
+type LlamaParams struct {
+}
+
+func Parse(filePath string) (*LlamaParams, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %v", err)
@@ -46,5 +49,5 @@ func Parse(filePath string) (*Safetensors, error) {
 		return nil, fmt.Errorf("failed to parse header data: %v", err)
 	}
 
-	return &Safetensors{}, nil
+	return &LlamaParams{}, nil
 }
