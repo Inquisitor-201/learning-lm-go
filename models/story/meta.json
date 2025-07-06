@@ -1,0 +1,221 @@
+{
+    "__metadata__": {
+        "format": "pt",
+        "model.embed_tokens.weight": "lm_head.weight"
+    },
+    "lm_head.weight": {
+        "dtype": "F32",
+        "shape": [
+            2048,
+            128
+        ],
+        "data_offsets": [
+            0,
+            1048576
+        ]
+    },
+    "model.layers.0.input_layernorm.weight": {
+        "dtype": "F32",
+        "shape": [
+            128
+        ],
+        "data_offsets": [
+            1048576,
+            1049088
+        ]
+    },
+    "model.layers.0.mlp.down_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            384
+        ],
+        "data_offsets": [
+            1049088,
+            1245696
+        ]
+    },
+    "model.layers.0.mlp.gate_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            384,
+            128
+        ],
+        "data_offsets": [
+            1245696,
+            1442304
+        ]
+    },
+    "model.layers.0.mlp.up_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            384,
+            128
+        ],
+        "data_offsets": [
+            1442304,
+            1638912
+        ]
+    },
+    "model.layers.0.post_attention_layernorm.weight": {
+        "dtype": "F32",
+        "shape": [
+            128
+        ],
+        "data_offsets": [
+            1638912,
+            1639424
+        ]
+    },
+    "model.layers.0.self_attn.k_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            64,
+            128
+        ],
+        "data_offsets": [
+            1639424,
+            1672192
+        ]
+    },
+    "model.layers.0.self_attn.o_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            128
+        ],
+        "data_offsets": [
+            1672192,
+            1737728
+        ]
+    },
+    "model.layers.0.self_attn.q_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            128
+        ],
+        "data_offsets": [
+            1737728,
+            1803264
+        ]
+    },
+    "model.layers.0.self_attn.v_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            64,
+            128
+        ],
+        "data_offsets": [
+            1803264,
+            1836032
+        ]
+    },
+    "model.layers.1.input_layernorm.weight": {
+        "dtype": "F32",
+        "shape": [
+            128
+        ],
+        "data_offsets": [
+            1836032,
+            1836544
+        ]
+    },
+    "model.layers.1.mlp.down_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            384
+        ],
+        "data_offsets": [
+            1836544,
+            2033152
+        ]
+    },
+    "model.layers.1.mlp.gate_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            384,
+            128
+        ],
+        "data_offsets": [
+            2033152,
+            2229760
+        ]
+    },
+    "model.layers.1.mlp.up_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            384,
+            128
+        ],
+        "data_offsets": [
+            2229760,
+            2426368
+        ]
+    },
+    "model.layers.1.post_attention_layernorm.weight": {
+        "dtype": "F32",
+        "shape": [
+            128
+        ],
+        "data_offsets": [
+            2426368,
+            2426880
+        ]
+    },
+    "model.layers.1.self_attn.k_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            64,
+            128
+        ],
+        "data_offsets": [
+            2426880,
+            2459648
+        ]
+    },
+    "model.layers.1.self_attn.o_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            128
+        ],
+        "data_offsets": [
+            2459648,
+            2525184
+        ]
+    },
+    "model.layers.1.self_attn.q_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            128,
+            128
+        ],
+        "data_offsets": [
+            2525184,
+            2590720
+        ]
+    },
+    "model.layers.1.self_attn.v_proj.weight": {
+        "dtype": "F32",
+        "shape": [
+            64,
+            128
+        ],
+        "data_offsets": [
+            2590720,
+            2623488
+        ]
+    },
+    "model.norm.weight": {
+        "dtype": "F32",
+        "shape": [
+            128
+        ],
+        "data_offsets": [
+            2623488,
+            2624000
+        ]
+    }
+}
