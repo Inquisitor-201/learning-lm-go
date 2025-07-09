@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 )
 
 type Tensor[T TensorDataType] struct {
@@ -105,4 +106,160 @@ func calculateSize(shape []uint32) uint32 {
 		length *= dim
 	}
 	return length
+}
+
+// String returns a formatted and human-readable string representation of the Tensor.
+// For large tensors, it automatically truncates the output with ellipsis (...) to maintain readability.
+func (t *Tensor[T]) String() string {
+	if len(t.shape) == 0 {
+		return "[]"
+	}
+
+	// Thresholds for truncation
+	maxElements := 1000   // Maximum elements to print before truncation
+	maxLineElements := 20 // Maximum elements per line before truncation
+	maxSlices := 5        // Maximum 2D slices to print for ND tensors
+
+	// Check if the tensor is too large to print fully
+	totalElements := int(t.length)
+	shouldTruncate := totalElements > maxElements
+
+	var sb strings.Builder
+
+	// 0D tensor (scalar)
+	if len(t.shape) == 0 {
+		if len(t.data) == 0 {
+			return "[]"
+		}
+		return fmt.Sprintf("[%v]", t.data[0])
+	}
+
+	// 1D tensor (vector)
+	if len(t.shape) == 1 {
+		sb.WriteString("[")
+		for i, v := range t.data {
+			if i > 0 {
+				sb.WriteString(" ")
+			}
+
+			// Truncate long vectors
+			if shouldTruncate && i >= maxLineElements {
+				sb.WriteString("...")
+				break
+			}
+
+			sb.WriteString(fmt.Sprintf("%v", v))
+		}
+		sb.WriteString("]")
+		return sb.String()
+	}
+
+	// 2D tensor (matrix)
+	if len(t.shape) == 2 {
+		rows, cols := int(t.shape[0]), int(t.shape[1])
+
+		// Calculate maximum width for proper alignment
+		maxWidth := 0
+		elementsToCheck := totalElements
+		if shouldTruncate {
+			elementsToCheck = int(math.Min(float64(maxElements), float64(totalElements)))
+		}
+
+		for i := 0; i < elementsToCheck; i++ {
+			s := fmt.Sprintf("%v", t.data[i])
+			if len(s) > maxWidth {
+				maxWidth = len(s)
+			}
+		}
+
+		// Print column indices (starting from 0)
+		sb.WriteString("    ") // Indent for row labels
+		printCols := cols
+		if shouldTruncate && cols > maxLineElements {
+			printCols = maxLineElements
+		}
+
+		for c := 0; c < printCols; c++ {
+			sb.WriteString(fmt.Sprintf("%*d ", maxWidth, c))
+		}
+		if shouldTruncate && cols > maxLineElements {
+			sb.WriteString(fmt.Sprintf("%*s", maxWidth, "..."))
+		}
+		sb.WriteString("\n")
+
+		// Print rows with row indices
+		printRows := rows
+		if shouldTruncate && rows > maxLineElements {
+			printRows = maxLineElements
+		}
+
+		for r := 0; r < printRows; r++ {
+			sb.WriteString(fmt.Sprintf("%2d: [", r))
+			for c := 0; c < printCols; c++ {
+				idx := r*cols + c
+				sb.WriteString(fmt.Sprintf("%*v ", maxWidth, t.data[idx]))
+			}
+			if shouldTruncate && cols > maxLineElements {
+				sb.WriteString(fmt.Sprintf("%*s ", maxWidth, "..."))
+			}
+			sb.WriteString("]\n")
+		}
+
+		if shouldTruncate && rows > maxLineElements {
+			sb.WriteString(fmt.Sprintf("..: %*s\n", maxWidth*(printCols+2)+2, "..."))
+		}
+
+		return sb.String()
+	}
+
+	// 3D+ tensors: print each 2D slice with its index
+	return t.printND(sb, shouldTruncate, maxSlices)
+}
+
+// printND handles printing of tensors with 3 or more dimensions by recursively printing 2D slices.
+func (t *Tensor[T]) printND(sb strings.Builder, shouldTruncate bool, maxSlices int) string {
+	// For tensors with more than 2 dimensions, print each 2D slice with its indices
+	totalDims := len(t.shape)
+	firstDim := int(t.shape[0])
+	remainingDims := t.shape[1:]
+
+	// Calculate the size of the remaining dimensions
+	remainingSize := calculateSize(remainingDims)
+
+	printSlices := firstDim
+	if shouldTruncate && firstDim > maxSlices {
+		printSlices = maxSlices
+	}
+
+	for i := 0; i < printSlices; i++ {
+		// Header for this 2D slice
+		sb.WriteString(fmt.Sprintf("Tensor slice [%d", i))
+		if totalDims > 3 {
+			// Show ellipsis for higher dimensions
+			sb.WriteString(", ...")
+		}
+		sb.WriteString("]\n")
+
+		// Extract data for this 2D slice
+		startIdx := i * int(remainingSize)
+		endIdx := startIdx + int(remainingSize)
+		sliceData := t.data[startIdx:endIdx]
+
+		// Create a temporary 2D tensor for this slice
+		tempTensor := &Tensor[T]{
+			data:   sliceData,
+			shape:  remainingDims,
+			length: remainingSize,
+		}
+
+		// Print the 2D slice with truncation
+		sb.WriteString(tempTensor.String())
+		sb.WriteString("\n")
+	}
+
+	if shouldTruncate && firstDim > maxSlices {
+		sb.WriteString("...\n")
+	}
+
+	return sb.String()
 }

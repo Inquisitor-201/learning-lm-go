@@ -47,6 +47,6 @@ func main() {
 	}
 	input_tokens, _ := tk.Encode("The Gophers craft code using Go language.", false)
 
-	output_tokens := llama.Generate(input_tokens)
+	output_tokens := llama.Generate(input_tokens, 0, 0, 0, 0)
 	logrus.Info("Output tokens: ", output_tokens)
 }

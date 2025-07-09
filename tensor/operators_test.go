@@ -85,31 +85,121 @@ func TestGather(t *testing.T) {
 		t.Errorf("Empty indices gather failed: expected %v, got %v",
 			expectedEmpty.Data(), outputEmpty.Data())
 	}
+}
 
-	// Test case 5: Input is not a 2D tensor (should panic)
-	input3D := NewTensor([]float32{1, 2, 3, 4}, []uint32{2, 2, 1})
+// TestGatherPanic_InputNot2D verifies panic when input is not a 2D tensor
+func TestGatherPanic_InputNot2D(t *testing.T) {
+	input3D := NewTensor([]float32{1, 2, 3, 4}, []uint32{2, 2, 1}) // 3D tensor (invalid)
+	indices := NewTensor([]uint32{1, 0, 2, 1}, []uint32{4})        // Valid 1D indices
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Gather did not panic when input is not 2D")
 		}
 	}()
-	Gather(input3D, indicesSmall)
 
-	// Test case 6: Indices is not a 1D tensor (should panic)
-	indices2D := NewTensor([]uint32{1, 0}, []uint32{1, 2})
+	Gather(input3D, indices) // Should trigger panic
+}
+
+// TestGatherPanic_IndicesNot1D verifies panic when indices are not a 1D tensor
+func TestGatherPanic_IndicesNot1D(t *testing.T) {
+	input := NewTensor([]float32{1, 2, 3, 4, 5, 6}, []uint32{3, 2}) // Valid 2D input
+	indices2D := NewTensor([]uint32{1, 0}, []uint32{1, 2})          // 2D indices (invalid)
+
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("Gather did not panic when indices is not 1D")
+			t.Errorf("Gather did not panic when indices are not 1D")
 		}
 	}()
-	Gather(inputSmall, indices2D)
 
-	// Test case 7: Out-of-bounds indices (should panic)
-	indicesOutOfBounds := NewTensor([]uint32{5}, []uint32{1})
+	Gather(input, indices2D) // Should trigger panic
+}
+
+// TestGatherPanic_IndicesOutOfBounds verifies panic when indices are out of bounds
+func TestGatherPanic_IndicesOutOfBounds(t *testing.T) {
+	input := NewTensor([]float32{1, 2, 3, 4, 5, 6}, []uint32{3, 2}) // 3 rows (indices 0-2)
+	indicesOutOfBounds := NewTensor([]uint32{5}, []uint32{1})       // Index 5 is out of range
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Gather did not panic when indices are out of bounds")
 		}
 	}()
-	Gather(inputSmall, indicesOutOfBounds)
+
+	Gather(input, indicesOutOfBounds) // Should trigger panic
+}
+
+func TestMaskedSoftmax(t *testing.T) {
+	input := NewTensor([]float32{
+		1, 1, 1,
+		1, -1, 0,
+		1, 2, 3}, []uint32{1, 3, 3}) // 3 rows (indices 0-2)
+	expected := NewTensor([]float32{
+		1, 0, 0,
+		0.880797078, 0.119202922, 0,
+		0.09003057317, 0.2447284711, 0.6652409558}, []uint32{1, 3, 3}) // 3 rows (indices 0-2)
+
+	MaskedSoftmax(input)
+
+	res, err := input.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("MaskedSoftmax paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("MaskedSoftmax failed: expected %v, got %v", expected, input)
+	}
+}
+
+func TestSwiGLu(t *testing.T) {
+	x := NewTensor([]float32{1.0, 2.0, 3.0}, []uint32{1, 3})
+	y := NewTensor([]float32{2.0, 3.0, 4.0}, []uint32{1, 3})
+
+	SwiGLu(y, x)
+	expected := NewTensor([]float32{1.4621172, 5.2847824, 11.43089}, []uint32{1, 3})
+	// use CloseTo to compare tensors
+	res, err := y.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("SwiGLu panicked: %v", err)
+	}
+	if !res {
+		t.Errorf("SwiGLu failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestRMSNorm(t *testing.T) {
+	x := NewTensor([]float32{1.0, 2.0, 3.0, 4.0}, []uint32{2, 2})
+	w := NewTensor([]float32{1.0, 2.0}, []uint32{2})
+	expected := NewTensor([]float32{0.6324554, 2.5298216, 0.8485281, 2.2627416}, []uint32{2, 2})
+	y := RMSNorm(x, w, 1e-6)
+	res, err := y.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("RMSNorm paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("RMSNorm failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestRMSNorm_2(t *testing.T) {
+	x := NewTensor(
+		[]float32{
+			0.0, 0.0, 0.1,
+			3.0, 4.0, 5.0,
+		},
+		[]uint32{2, 3})
+	w := NewTensor([]float32{1.0, 2.0, 3.0}, []uint32{3})
+	expected := NewTensor(
+		[]float32{
+			0.0, 0.0, 5.195373175,
+			0.7348469008, 1.959591735, 3.674234504,
+		},
+		[]uint32{2, 3})
+	y := RMSNorm(x, w, 1e-6)
+	res, err := y.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("RMSNorm paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("RMSNorm failed: expected %v, got %v", expected, y)
+	}
 }

@@ -3,11 +3,14 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"learning-lm-go/tensor"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 )
+
+type Tensor[T tensor.TensorDataType] = tensor.Tensor[T]
 
 type LlamaConfigJson struct {
 	VocabSize             int     `json:"vocab_size"`
@@ -57,6 +60,10 @@ func FromSafeTensors(modelDir string) (*Llama, error) {
 	}, nil
 }
 
-func (llama *Llama) Generate(tokens []uint32) []uint32 {
+func (llama *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_k uint32, temperature float32) []uint32 {
 	return []uint32{}
+}
+
+func (llama *Llama) Forward(input *Tensor[uint32]) {
+
 }
