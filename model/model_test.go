@@ -17,24 +17,24 @@ func TestMLP(t *testing.T) {
 	// 1. Initialize input tensors
 	// residual: shape [seqLen, d] = [4, 2], initialized with all 1.0s (8 elements total)
 	residualData := []float32{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
-	residual := tensor.NewTensor[float32](residualData, []uint32{uint32(seqLen), uint32(d)})
+	residual := tensor.NewTensor(residualData, []uint32{uint32(seqLen), uint32(d)})
 
 	// 2. Initialize weight tensors
 	// w_up: shape [di, d] = [3, 2], weight matrix for up-projection (3×2=6 elements)
 	wUpData := []float32{0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
-	wUp := tensor.NewTensor[float32](wUpData, []uint32{uint32(di), uint32(d)})
+	wUp := tensor.NewTensor(wUpData, []uint32{uint32(di), uint32(d)})
 
 	// w_down: shape [d, di] = [2, 3], weight matrix for down-projection (2×3=6 elements)
 	wDownData := []float32{0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
-	wDown := tensor.NewTensor[float32](wDownData, []uint32{uint32(d), uint32(di)})
+	wDown := tensor.NewTensor(wDownData, []uint32{uint32(d), uint32(di)})
 
 	// w_gate: shape [di, d] = [3, 2], weight matrix for gate activation (same as w_up here)
 	wGateData := []float32{0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
-	wGate := tensor.NewTensor[float32](wGateData, []uint32{uint32(di), uint32(d)})
+	wGate := tensor.NewTensor(wGateData, []uint32{uint32(di), uint32(d)})
 
 	// rms_w: shape [d] = [2], weights for RMS normalization
 	rmsWData := []float32{1.0, 1.0}
-	rmsW := tensor.NewTensor[float32](rmsWData, []uint32{uint32(d)})
+	rmsW := tensor.NewTensor(rmsWData, []uint32{uint32(d)})
 
 	// 3. Execute the MLP function
 	// Note: The actual mlp function implementation must be ported from Rust logic

@@ -67,7 +67,16 @@ func (t *Tensor[T]) At(index ...uint32) *T {
 		offset = offset*t.shape[i] + index[i]
 	}
 
-	return &t.data[offset]
+	return &t.Data()[offset]
+}
+
+func (t *Tensor[T]) Slice(offset uint32, shape []uint32) *Tensor[T] {
+	newSize := calculateSize(shape)
+	if offset+newSize > t.length {
+		panic("slice out of range")
+	}
+
+	return &Tensor[T]{data: t.Data()[offset : offset+newSize], shape: shape, length: newSize}
 }
 
 func (t *Tensor[T]) CloseTo(other *Tensor[T], rel float32) (bool, error) {
@@ -80,12 +89,12 @@ func (t *Tensor[T]) CloseTo(other *Tensor[T], rel float32) (bool, error) {
 			return false, errors.New("tensors must have the same shape")
 		}
 	}
-	if len(t.data) != len(other.data) {
+	if len(t.Data()) != len(other.Data()) {
 		return false, errors.New("tensors must have the same length")
 	}
 	// type assertion to check if T is a float type
-	for i := range t.data {
-		if !floatEq(float32(t.data[i]), float32(other.data[i]), rel) {
+	for i := range t.Data() {
+		if !floatEq(float32(t.Data()[i]), float32(other.Data()[i]), rel) {
 			return false, nil
 		}
 	}
@@ -128,16 +137,16 @@ func (t *Tensor[T]) String() string {
 
 	// 0D tensor (scalar)
 	if len(t.shape) == 0 {
-		if len(t.data) == 0 {
+		if len(t.Data()) == 0 {
 			return "[]"
 		}
-		return fmt.Sprintf("[%v]", t.data[0])
+		return fmt.Sprintf("[%v]", t.Data()[0])
 	}
 
 	// 1D tensor (vector)
 	if len(t.shape) == 1 {
 		sb.WriteString("[")
-		for i, v := range t.data {
+		for i, v := range t.Data() {
 			if i > 0 {
 				sb.WriteString(" ")
 			}
@@ -166,7 +175,7 @@ func (t *Tensor[T]) String() string {
 		}
 
 		for i := 0; i < elementsToCheck; i++ {
-			s := fmt.Sprintf("%v", t.data[i])
+			s := fmt.Sprintf("%v", t.Data()[i])
 			if len(s) > maxWidth {
 				maxWidth = len(s)
 			}
@@ -197,7 +206,7 @@ func (t *Tensor[T]) String() string {
 			sb.WriteString(fmt.Sprintf("%2d: [", r))
 			for c := 0; c < printCols; c++ {
 				idx := r*cols + c
-				sb.WriteString(fmt.Sprintf("%*v ", maxWidth, t.data[idx]))
+				sb.WriteString(fmt.Sprintf("%*v ", maxWidth, t.Data()[idx]))
 			}
 			if shouldTruncate && cols > maxLineElements {
 				sb.WriteString(fmt.Sprintf("%*s ", maxWidth, "..."))
@@ -243,7 +252,7 @@ func (t *Tensor[T]) printND(sb strings.Builder, shouldTruncate bool, maxSlices i
 		// Extract data for this 2D slice
 		startIdx := i * int(remainingSize)
 		endIdx := startIdx + int(remainingSize)
-		sliceData := t.data[startIdx:endIdx]
+		sliceData := t.Data()[startIdx:endIdx]
 
 		// Create a temporary 2D tensor for this slice
 		tempTensor := &Tensor[T]{

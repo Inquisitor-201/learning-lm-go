@@ -14,11 +14,11 @@ func Gather(input *Tensor[float32], indices *Tensor[uint32]) *Tensor[float32] {
 		panic("indices must be a 1D tensor")
 	}
 
-	output := EmptyTensor[float32]([]uint32{uint32(len(indices.data)), input.shape[1]})
+	output := EmptyTensor[float32]([]uint32{uint32(len(indices.Data())), input.shape[1]})
 	var i uint32
-	for i = 0; i < uint32(len(indices.data)); i++ {
-		copy(output.data[i*output.shape[1]:(i+1)*output.shape[1]],
-			input.data[indices.data[i]*input.shape[1]:(indices.data[i]+1)*input.shape[1]])
+	for i = 0; i < uint32(len(indices.Data())); i++ {
+		copy(output.Data()[i*output.shape[1]:(i+1)*output.shape[1]],
+			input.Data()[indices.Data()[i]*input.shape[1]:(indices.Data()[i]+1)*input.shape[1]])
 	}
 	return output
 }
@@ -152,27 +152,27 @@ const (
 	OpDiv
 )
 
-func Add(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+func Add[T TensorDataType](x *Tensor[T], y *Tensor[T]) *Tensor[T] {
 	return ApplyOp(OpAdd, x, y)
 }
 
-func Sub(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+func Sub[T TensorDataType](x *Tensor[T], y *Tensor[T]) *Tensor[T] {
 	return ApplyOp(OpSub, x, y)
 }
 
-func Dot(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+func Dot[T TensorDataType](x *Tensor[T], y *Tensor[T]) *Tensor[T] {
 	return ApplyOp(OpMul, x, y)
 }
 
-func Div(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+func Div[T TensorDataType](x *Tensor[T], y *Tensor[T]) *Tensor[T] {
 	return ApplyOp(OpDiv, x, y)
 }
 
-func ApplyOp(op int, x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+func ApplyOp[T TensorDataType](op int, x *Tensor[T], y *Tensor[T]) *Tensor[T] {
 	if x.Size() != y.Size() {
 		panic("Apply: x and y must have the same size")
 	}
-	res := EmptyTensor[float32](x.Shape())
+	res := EmptyTensor[T](x.Shape())
 	for i := range x.Data() {
 		x_val := x.Data()[i]
 		y_val := y.Data()[i]
@@ -192,20 +192,20 @@ func ApplyOp(op int, x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
 	return res
 }
 
-func Neg(x *Tensor[float32]) {
+func Neg[T TensorDataType](x *Tensor[T]) {
 	for i := range x.Data() {
 		x.Data()[i] = -x.Data()[i]
 	}
 }
 
-func ScalarMul(a float32, x *Tensor[float32]) {
+func ScalarMul[T TensorDataType](a T, x *Tensor[T]) {
 	for i := range x.Data() {
 		x.Data()[i] = a * x.Data()[i]
 	}
 }
 
 // Calculate A @ B^T
-func MatMulTransB(a *Tensor[float32], b *Tensor[float32]) *Tensor[float32] {
+func MatMulTransB[T TensorDataType](a *Tensor[T], b *Tensor[T]) *Tensor[T] {
 	if len(a.Shape()) < 2 {
 		panic("MatMul: a must have at least 2 dimensions")
 	}
@@ -222,11 +222,11 @@ func MatMulTransB(a *Tensor[float32], b *Tensor[float32]) *Tensor[float32] {
 	na := a.Size() / a.shape[ndimA-1]
 	nb := b.Size() / b.shape[1]
 
-	data := make([]float32, na*nb)
+	data := make([]T, na*nb)
 
 	for i := uint32(0); i < na; i++ {
 		for j := uint32(0); j < nb; j++ {
-			sum := float32(0.0)
+			sum := T(0)
 			baseA := i * a.shape[ndimA-1]
 			baseB := j * b.shape[1]
 			for k := uint32(0); k < a.shape[ndimA-1]; k++ {

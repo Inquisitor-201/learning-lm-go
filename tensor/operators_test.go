@@ -38,7 +38,7 @@ func TestGather(t *testing.T) {
 
 	indicesLarge := EmptyTensor[uint32]([]uint32{uint32(rows)})
 	for i := uint32(0); i < rows; i++ {
-		indicesLarge.data[i] = uint32(rows - 1 - i) // Reverse order indices
+		indicesLarge.Data()[i] = uint32(rows - 1 - i) // Reverse order indices
 	}
 
 	expectedLargeData := make([]float32, rows*cols)

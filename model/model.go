@@ -64,10 +64,10 @@ func (llama *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_
 	return []uint32{}
 }
 
-func (llama *Llama) Forward(input *Tensor[uint32]) {
-	// seqLen := input.Size()
-	// pastSeqLen :=
-
+func (llama *Llama) Forward(input *Tensor[uint32], cache *KVCache[float32]) {
+	seqLen := input.Size()
+	pastSeqLen := cache.Len()
+	cache.Increment(seqLen)
 }
 
 func MLP(residual, wUp, wDown, wGate, rmsW *Tensor[float32], eps float32) *Tensor[float32] {
