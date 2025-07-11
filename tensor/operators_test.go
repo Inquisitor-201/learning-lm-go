@@ -203,3 +203,38 @@ func TestRMSNorm_2(t *testing.T) {
 		t.Errorf("RMSNorm failed: expected %v, got %v", expected, y)
 	}
 }
+
+func TestMatMulTransB(t *testing.T) {
+	a := NewTensor(
+		[]float32{
+			1.0, 2.0, 3.0, 4.0,
+			5.0, 6.0, 7.0, 8.0,
+		},
+		[]uint32{2, 4},
+	)
+
+	b := NewTensor(
+		[]float32{
+			2.0, 3.0, 4.0, 5.0,
+			6.0, 7.0, 8.0, 9.0,
+			10.0, 11.0, 12.0, 13.0,
+		},
+		[]uint32{3, 4},
+	)
+
+	expected := NewTensor(
+		[]float32{
+			40, 80, 120,
+			96, 200, 304,
+		},
+		[]uint32{2, 3},
+	)
+	y := MatMulTransB(a, b)
+	res, err := y.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("MatMulTransB paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("MatMulTransB failed: expected %v, got %v", expected, y)
+	}
+}

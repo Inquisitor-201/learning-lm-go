@@ -1,6 +1,8 @@
 package tensor
 
-import "math"
+import (
+	"math"
+)
 
 func Gather(input *Tensor[float32], indices *Tensor[uint32]) *Tensor[float32] {
 	// TODO: implement Gather
@@ -150,46 +152,92 @@ const (
 	OpDiv
 )
 
-func Add(x *Tensor[float32], y *Tensor[float32]) {
-	ApplyOp(OpAdd, x, y)
+func Add(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+	return ApplyOp(OpAdd, x, y)
 }
 
-func Sub(x *Tensor[float32], y *Tensor[float32]) {
-	ApplyOp(OpSub, x, y)
+func Sub(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+	return ApplyOp(OpSub, x, y)
 }
 
-func Dot(x *Tensor[float32], y *Tensor[float32]) {
-	ApplyOp(OpMul, x, y)
+func Dot(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+	return ApplyOp(OpMul, x, y)
 }
 
-func Div(x *Tensor[float32], y *Tensor[float32]) {
-	ApplyOp(OpDiv, x, y)
+func Div(x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
+	return ApplyOp(OpDiv, x, y)
 }
 
-func ApplyOp(op int, x *Tensor[float32], y *Tensor[float32]) {
+func ApplyOp(op int, x *Tensor[float32], y *Tensor[float32]) *Tensor[float32] {
 	if x.Size() != y.Size() {
 		panic("Apply: x and y must have the same size")
 	}
+	res := EmptyTensor[float32](x.Shape())
 	for i := range x.Data() {
 		x_val := x.Data()[i]
 		y_val := y.Data()[i]
 		switch op {
 		case OpAdd:
-			x.Data()[i] = x_val + y_val
+			res.Data()[i] = x_val + y_val
 		case OpSub:
-			x.Data()[i] = x_val - y_val
+			res.Data()[i] = x_val - y_val
 		case OpMul:
-			x.Data()[i] = x_val * y_val
+			res.Data()[i] = x_val * y_val
 		case OpDiv:
-			x.Data()[i] = x_val / y_val
+			res.Data()[i] = x_val / y_val
 		default:
 			panic("unknown operator")
 		}
 	}
+	return res
 }
 
 func Neg(x *Tensor[float32]) {
 	for i := range x.Data() {
 		x.Data()[i] = -x.Data()[i]
 	}
+}
+
+func ScalarMul(a float32, x *Tensor[float32]) {
+	for i := range x.Data() {
+		x.Data()[i] = a * x.Data()[i]
+	}
+}
+
+// Calculate A @ B^T
+func MatMulTransB(a *Tensor[float32], b *Tensor[float32]) *Tensor[float32] {
+	if len(a.Shape()) < 2 {
+		panic("MatMul: a must have at least 2 dimensions")
+	}
+	if len(b.Shape()) != 2 {
+		panic("MatMul: b must have exactly 2 dimensions")
+	}
+
+	ndimA := len(a.Shape())
+
+	if a.shape[ndimA-1] != b.shape[1] {
+		panic("MatMul: a and b must have the same size in the last dimension")
+	}
+
+	na := a.Size() / a.shape[ndimA-1]
+	nb := b.Size() / b.shape[1]
+
+	data := make([]float32, na*nb)
+
+	for i := uint32(0); i < na; i++ {
+		for j := uint32(0); j < nb; j++ {
+			sum := float32(0.0)
+			baseA := i * a.shape[ndimA-1]
+			baseB := j * b.shape[1]
+			for k := uint32(0); k < a.shape[ndimA-1]; k++ {
+				sum += a.Data()[baseA+k] * b.Data()[baseB+k]
+			}
+			data[i*nb+j] = sum
+		}
+	}
+
+	shape := make([]uint32, 0, ndimA)
+	shape = append(shape, a.shape[:ndimA-1]...)
+	shape = append(shape, nb)
+	return NewTensor(data, shape)
 }

@@ -65,5 +65,17 @@ func (llama *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_
 }
 
 func (llama *Llama) Forward(input *Tensor[uint32]) {
+	// seqLen := input.Size()
+	// pastSeqLen :=
 
+}
+
+func MLP(residual, wUp, wDown, wGate, rmsW *Tensor[float32], eps float32) *Tensor[float32] {
+	hidden := tensor.RMSNorm(residual, rmsW, eps)
+	gate := tensor.MatMulTransB(hidden, wGate)
+
+	up := tensor.MatMulTransB(hidden, wUp)
+	tensor.SwiGLu(up, gate)
+	output := tensor.MatMulTransB(up, wDown)
+	return tensor.Add(residual, output)
 }
