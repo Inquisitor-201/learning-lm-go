@@ -32,7 +32,7 @@ func TestNewTensor(t *testing.T) {
 	}
 
 	for i := uint32(0); i < tensor.Size(); i++ {
-		if !floatEq(tensor.Data()[i], data[i], 1e-5) {
+		if !FloatEq(tensor.Data()[i], data[i], 1e-5) {
 			t.Errorf("Expected data %v, but got %v", data, tensor.Data())
 		}
 	}
@@ -75,7 +75,7 @@ func TestNewTensor_Boundary(t *testing.T) {
 	dataSingle := []float32{100}
 	shapeSingle := []uint32{1}
 	tensorSingle := NewTensor(dataSingle, shapeSingle)
-	if !floatEq(tensorSingle.Data()[0], 100, 1e-5) {
+	if !FloatEq(tensorSingle.Data()[0], 100, 1e-5) {
 		t.Errorf("Single element tensor: expected data [100], got %v", tensorSingle.Data())
 	}
 	if tensorSingle.length != 1 {

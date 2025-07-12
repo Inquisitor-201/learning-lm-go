@@ -94,14 +94,14 @@ func (t *Tensor[T]) CloseTo(other *Tensor[T], rel float32) (bool, error) {
 	}
 	// type assertion to check if T is a float type
 	for i := range t.Data() {
-		if !floatEq(float32(t.Data()[i]), float32(other.Data()[i]), rel) {
+		if !FloatEq(float32(t.Data()[i]), float32(other.Data()[i]), rel) {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-func floatEq(a, b, rel float32) bool {
+func FloatEq(a, b, rel float32) bool {
 	absDiff := math.Abs(float64(a - b))
 	return absDiff <= float64(rel)*(math.Abs(float64(a))+math.Abs(float64(b)))/2.0
 }

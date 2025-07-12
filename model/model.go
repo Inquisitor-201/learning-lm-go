@@ -14,25 +14,23 @@ import (
 type Tensor[T tensor.TensorDataType] = tensor.Tensor[T]
 
 type LlamaConfig struct {
-	VocabSize             int     `json:"vocab_size"`
-	NumHiddenLayers       int     `json:"num_hidden_layers"`
-	NumAttentionHeads     int     `json:"num_attention_heads"`
-	NumKeyValueHeads      int     `json:"num_key_value_heads"`
-	HiddenSize            int     `json:"hidden_size"`
-	IntermediateSize      int     `json:"intermediate_size"`
-	RMSNormEps            float32 `json:"rms_norm_eps"`
-	RopeTheta             float32 `json:"rope_theta"`
-	MaxPositionEmbeddings int     `json:"max_position_embeddings"`
-	BosTokenID            uint32  `json:"bos_token_id"`
-	EosTokenID            uint32  `json:"eos_token_id"`
-}
-
-type SafeTensors struct {
+	Vocab      int `json:"vocab_size"`
+	NLayers    int `json:"num_hidden_layers"`
+	NQH        int `json:"num_attention_heads"`
+	NKVH       int `json:"num_key_value_heads"`
+	D          int `json:"hidden_size"`
+	Di         int `json:"intermediate_size"`
+	DQKV       int
+	RMSNormEps float32 `json:"rms_norm_eps"`
+	RopeTheta  float32 `json:"rope_theta"`
+	MaxSeqLen  int     `json:"max_position_embeddings"`
+	BosTokenID uint32  `json:"bos_token_id"`
+	EosTokenID uint32  `json:"eos_token_id"`
 }
 
 type Llama struct {
 	Config *LlamaConfig
-	Params *LlamaParams
+	Params *LlamaParams[float32]
 }
 
 func FromSafeTensors(modelDir string) (*Llama, error) {
@@ -46,16 +44,15 @@ func FromSafeTensors(modelDir string) (*Llama, error) {
 	if err := json.Unmarshal(configData, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
+	config.DQKV = config.D / config.NQH
 	logrus.Debug("Config: ", config)
 
 	modelPath := filepath.Join(modelDir, "model.safetensors")
-	params, err := ParamsParse(modelPath)
+	params, err := ParamsFromSafeTensors(modelPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse model file: %v", err)
 	}
-	logrus.Debug("LlamaParams: ", params)
 
-	logrus.Info("config:", config, "params:", params)
 	return &Llama{
 		Config: &config,
 		Params: params,
