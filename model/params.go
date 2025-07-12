@@ -23,7 +23,7 @@ type Safetensors struct {
 type LlamaParams struct {
 }
 
-func Parse(filePath string) (*LlamaParams, error) {
+func ParamsParse(filePath string) (*LlamaParams, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %v", err)

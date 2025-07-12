@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"learning-lm-go/kvcache"
 	"learning-lm-go/tensor"
 	"os"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 
 type Tensor[T tensor.TensorDataType] = tensor.Tensor[T]
 
-type LlamaConfigJson struct {
+type LlamaConfig struct {
 	VocabSize             int     `json:"vocab_size"`
 	NumHiddenLayers       int     `json:"num_hidden_layers"`
 	NumAttentionHeads     int     `json:"num_attention_heads"`
@@ -30,7 +31,7 @@ type SafeTensors struct {
 }
 
 type Llama struct {
-	Vocab  int
+	Config *LlamaConfig
 	Params *LlamaParams
 }
 
@@ -41,33 +42,38 @@ func FromSafeTensors(modelDir string) (*Llama, error) {
 		return nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 
-	var config LlamaConfigJson
+	var config LlamaConfig
 	if err := json.Unmarshal(configData, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
 	logrus.Debug("Config: ", config)
 
 	modelPath := filepath.Join(modelDir, "model.safetensors")
-	params, err := Parse(modelPath)
+	params, err := ParamsParse(modelPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse model file: %v", err)
 	}
 	logrus.Debug("LlamaParams: ", params)
 
+	logrus.Info("config:", config, "params:", params)
 	return &Llama{
-		Vocab:  config.VocabSize,
+		Config: &config,
 		Params: params,
 	}, nil
 }
 
-func (llama *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_k uint32, temperature float32) []uint32 {
+func (l *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_k uint32, temperature float32) []uint32 {
 	return []uint32{}
 }
 
-func (llama *Llama) Forward(input *Tensor[uint32], cache *KVCache[float32]) {
+func (l *Llama) Forward(input *Tensor[uint32], cache *kvcache.KVCache[float32]) {
 	seqLen := input.Size()
 	pastSeqLen := cache.Len()
 	cache.Increment(seqLen)
+
+	totalSeqLen := seqLen + pastSeqLen
+	fmt.Println("totalSeqLen: ", totalSeqLen)
+	// nGroups := l.
 }
 
 func MLP(residual, wUp, wDown, wGate, rmsW *Tensor[float32], eps float32) *Tensor[float32] {
