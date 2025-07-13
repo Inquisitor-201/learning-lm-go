@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"math"
 	"reflect"
 	"testing"
 )
@@ -129,7 +130,7 @@ func TestGatherPanic_IndicesOutOfBounds(t *testing.T) {
 	Gather(input, indicesOutOfBounds) // Should trigger panic
 }
 
-func TestMaskedSoftmax(t *testing.T) {
+func TestMaskedSoftmax_1(t *testing.T) {
 	input := NewTensor([]float32{
 		1, 1, 1,
 		1, -1, 0,
@@ -138,6 +139,32 @@ func TestMaskedSoftmax(t *testing.T) {
 		1, 0, 0,
 		0.880797078, 0.119202922, 0,
 		0.09003057317, 0.2447284711, 0.6652409558}, []uint32{1, 3, 3}) // 3 rows (indices 0-2)
+
+	MaskedSoftmax(input)
+
+	res, err := input.CloseTo(expected, 1e-6)
+	if err != nil {
+		t.Errorf("MaskedSoftmax paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("MaskedSoftmax failed: expected %v, got %v", expected, input)
+	}
+}
+
+func TestMaskedSoftmax_2(t *testing.T) {
+	input := NewTensor([]float32{
+		1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1,
+	}, []uint32{1, 3, 5},
+	) // 3 rows (indices 0-2)
+
+	expected := NewTensor([]float32{
+		1. / 3, 1. / 3, 1. / 3, 0, 0,
+		1. / 4, 1. / 4, 1. / 4, 1. / 4, 0,
+		1. / 5, 1. / 5, 1. / 5, 1. / 5, 1. / 5,
+	}, []uint32{1, 3, 5},
+	) // 3 rows (indices 0-2)
 
 	MaskedSoftmax(input)
 
@@ -236,5 +263,145 @@ func TestMatMulTransB(t *testing.T) {
 	}
 	if !res {
 		t.Errorf("MatMulTransB failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestGroupAttnQK(t *testing.T) {
+	a := NewTensor(
+		[]float32{
+			1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
+			2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+		},
+		[]uint32{2, 4, 3},
+	)
+
+	b := NewTensor(
+		[]float32{
+			1, 1, 1, 2, 2, 2,
+		},
+		[]uint32{1, 2, 3},
+	)
+
+	expected := NewTensor(
+		[]float32{
+			3, 6,
+			6, 9,
+			18, 24,
+			24, 30,
+		},
+		[]uint32{4, 2, 1},
+	)
+	y, _ := GroupAttnQK(a, b)
+	ScalarMul(float32(math.Sqrt(3)), y)
+
+	res, err := y.CloseTo(expected, 1e-4)
+	if err != nil {
+		t.Errorf("MatMulTransB paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("MatMulTransB failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestGroupAttnQK_2(t *testing.T) {
+	a := NewTensor(
+		[]float32{
+			1, 1, 2, 2, 3, 3, 4, 4,
+			2, 2, 3, 3, 4, 4, 5, 5,
+			3, 3, 4, 4, 5, 5, 6, 6,
+		},
+		[]uint32{3, 4, 2},
+	)
+
+	b := NewTensor(
+		[]float32{
+			1, 1, 2, 2,
+			3, 3, 4, 4,
+		},
+		[]uint32{2, 2, 2},
+	)
+
+	expected := NewTensor(
+		[]float32{
+			2, 6, 4, 12, 6, 18,
+			4, 12, 6, 18, 8, 24,
+			12, 24, 16, 32, 20, 40,
+			16, 32, 20, 40, 24, 48,
+		},
+		[]uint32{4, 3, 2},
+	)
+	y, _ := GroupAttnQK(a, b)
+	ScalarMul(float32(math.Sqrt(2)), y)
+
+	res, err := y.CloseTo(expected, 1e-4)
+	if err != nil {
+		t.Errorf("MatMulTransB paniced: %v", err)
+	}
+	if !res {
+		t.Errorf("MatMulTransB failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestGroupAttnScore(t *testing.T) {
+	a := NewTensor(
+		[]float32{
+			1, 2, 3, 4,
+			2, 3, 4, 5,
+		},
+		[]uint32{2, 2, 2},
+	)
+	b := NewTensor(
+		[]float32{
+			1, 1, 1, 1,
+			2, 2, 2, 2,
+			3, 3, 3, 3,
+		},
+		[]uint32{3, 2, 2},
+	)
+	expected := NewTensor(
+		[]float32{
+			0.1070418015, 0.8929581985, 0,
+			8.24594052e-4, 0.02829456776, 0.9708808382,
+			0.007035351085, 0.9929646489, 0,
+			2.96199932e-6, 0.001719563085, 0.9982774749,
+		},
+		[]uint32{2, 2, 3},
+	)
+	y, _ := GroupAttnScore(a, b)
+
+	if res, err := y.CloseTo(expected, 1e-4); !res || err != nil {
+		t.Errorf("GroupAttn failed: expected %v, got %v", expected, y)
+	}
+}
+
+func TestGroupAttnV(t *testing.T) {
+	attn := NewTensor(
+		[]float32{
+			0.8, 0.2, 0,
+			0.5, 0.4, 0.1,
+			0.5, 0.5, 0,
+			0.1, 0.1, 0.8,
+		},
+		[]uint32{2, 2, 3},
+	)
+	v := NewTensor(
+		[]float32{
+			1, 2,
+			2, 1,
+			1, 1,
+		},
+		[]uint32{3, 1, 2},
+	)
+	expected := NewTensor(
+		[]float32{
+			1.2, 1.8, 1.5, 1.5,
+			1.4, 1.5, 1.1, 1.1,
+		},
+		[]uint32{2, 2, 2},
+	)
+	y, _ := GroupAttnV(attn, v)
+
+	if res, err := y.CloseTo(expected, 1e-4); !res || err != nil {
+		t.Errorf("GroupAttn failed: expected %v, got %v", expected, y)
 	}
 }

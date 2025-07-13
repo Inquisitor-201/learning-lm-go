@@ -1,6 +1,8 @@
 package tensor
 
 import (
+	"errors"
+	"fmt"
 	"math"
 )
 
@@ -60,6 +62,10 @@ func MaskedSoftmax(y *Tensor[float32]) {
 
 	seqLen := shape[ndim-2]
 	totalSeqLen := shape[ndim-1]
+
+	if seqLen > totalSeqLen {
+		panic("masked_softmax: seq_len must be less than or equal to total_seq_len")
+	}
 	batch := y.Size() / (seqLen * totalSeqLen)
 
 	data := y.Data()
@@ -240,4 +246,146 @@ func MatMulTransB[T TensorDataType](a *Tensor[T], b *Tensor[T]) *Tensor[T] {
 	shape = append(shape, a.shape[:ndimA-1]...)
 	shape = append(shape, nb)
 	return NewTensor(data, shape)
+}
+
+// GroupAttnQK 计算分组注意力中Q和K的转置乘积
+// q的形状为 [n1, hq, D]，k的形状为 [n2, hk, D]
+// 返回结果形状为 [hq, n1, n2]，其中每个元素 attn[h][i][j] = sum(d=0..D-1) q[i][h][d] * k[j][h'][d]
+// 其中 h' = h / (hq/hk)，要求 hq 必须是 hk 的倍数（即 hq = m*hk，m为整数）
+func GroupAttnQK(q *Tensor[float32], k *Tensor[float32]) (*Tensor[float32], error) {
+	// 检查q和k是否为三维张量
+	qShape := q.Shape()
+	if len(qShape) != 3 {
+		return nil, errors.New("q must be a 3D tensor")
+	}
+	kShape := k.Shape()
+	if len(kShape) != 3 {
+		return nil, errors.New("k must be a 3D tensor")
+	}
+
+	n1, hq, dq := qShape[0], qShape[1], qShape[2]
+	n2, hk, dk := kShape[0], kShape[1], kShape[2]
+
+	factor := 1. / float32(math.Sqrt(float64(dq)))
+
+	if dq != dk {
+		return nil, fmt.Errorf("q and k must have the same last dimension, got %d (q) and %d (k)", dq, dk)
+	}
+
+	if hq%hk != 0 {
+		return nil, fmt.Errorf("q's head count (hq=%d) must be a multiple of k's head count (hk=%d)", hq, hk)
+	}
+	m := hq / hk
+
+	attnShape := []uint32{hq, n1, n2}
+	attn := EmptyTensor[float32](attnShape)
+
+	qData := q.Data()
+	kData := k.Data()
+	attnData := attn.Data()
+
+	for h := uint32(0); h < hq; h++ {
+		for i := uint32(0); i < n1; i++ {
+			for j := uint32(0); j < n2; j++ {
+				hPrime := h / m
+				if hPrime >= hk {
+					return nil, fmt.Errorf("invalid hPrime %d (exceeds hk=%d) for h=%d", hPrime, hk, h)
+				}
+
+				sum := float32(0.0)
+				for d := uint32(0); d < dq; d++ {
+					qIdx := i*hq*dq + h*dq + d
+					kIdx := j*hk*dk + hPrime*dk + d
+
+					sum += qData[qIdx] * kData[kIdx]
+				}
+
+				attnIdx := h*n1*n2 + i*n2 + j
+				attnData[attnIdx] = sum * factor
+			}
+		}
+	}
+
+	return attn, nil
+}
+
+func GroupAttnScore(q *Tensor[float32], k *Tensor[float32]) (*Tensor[float32], error) {
+	attn, err := GroupAttnQK(q, k)
+	if err != nil {
+		return nil, err
+	}
+	MaskedSoftmax(attn)
+	return attn, nil
+}
+
+// GroupAttnV 计算分组注意力机制中的值矩阵乘法
+// attn 形状: [h, n1, n2]
+// v 形状: [n2, h', D]
+// 返回形状: [n1, h, D]
+func GroupAttnV(attn *Tensor[float32], v *Tensor[float32]) (*Tensor[float32], error) {
+	// 检查维度数量
+	if len(attn.Shape()) != 3 {
+		return nil, errors.New("attn must be a 3D tensor")
+	}
+	if len(v.Shape()) != 3 {
+		return nil, errors.New("v must be a 3D tensor")
+	}
+
+	// 获取各维度大小
+	h, n1, n2_attn := attn.Shape()[0], attn.Shape()[1], attn.Shape()[2]
+	n2_v, h_prime, d := v.Shape()[0], v.Shape()[1], v.Shape()[2]
+
+	m := h / h_prime
+
+	// 检查n2是否匹配
+	if n2_attn != n2_v {
+		return nil, fmt.Errorf("n2 dimension mismatch: attn has %d, v has %d", n2_attn, n2_v)
+	}
+
+	// 检查h是否是h'的倍数
+	if h%h_prime != 0 {
+		return nil, fmt.Errorf("h must be a multiple of h', got h=%d and h'=%d", h, h_prime)
+	}
+
+	// 创建结果张量
+	resultShape := []uint32{n1, h, d}
+	result := EmptyTensor[float32](resultShape)
+
+	// 获取底层数据切片以提高访问效率
+	attnData := attn.Data()
+	vData := v.Data()
+	resultData := result.Data()
+
+	// 计算结果张量的每个元素
+	for i := uint32(0); i < n1; i++ {
+		for h_idx := uint32(0); h_idx < h; h_idx++ {
+			// 计算对应的h'索引
+			h_prime_idx := h_idx / m
+
+			for d_idx := uint32(0); d_idx < d; d_idx++ {
+				// 初始化累加和
+				sum := float32(0)
+
+				// 对n2维度求和
+				for j := uint32(0); j < n2_attn; j++ {
+					// 计算attn中元素的索引
+					attnIdx := h_idx*n1*n2_attn + i*n2_attn + j
+
+					// 计算v中元素的索引
+					vIdx := j*h_prime*d + h_prime_idx*d + d_idx
+
+					// 累加乘积
+					sum += attnData[attnIdx] * vData[vIdx]
+				}
+
+				// 计算结果张量中的索引
+				resultIdx := i*h*d + h_idx*d + d_idx
+
+				// 存储结果
+				resultData[resultIdx] = sum
+			}
+		}
+	}
+
+	return result, nil
 }

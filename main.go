@@ -46,7 +46,7 @@ func main() {
 		panic("Loading tokenizer failed")
 	}
 
-	input_tokens, _ := tk.Encode("happy birthday to you", false)
+	input_tokens, _ := tk.Encode("You are a excellent programmer. Please tell me, which is the best programming language? Answer:", false)
 	logrus.Info("Input tokens: ", input_tokens)
 
 	output_tokens, err := llama.Generate(input_tokens, 0, 0, 0, 0)
@@ -55,4 +55,6 @@ func main() {
 		panic("Generating tokens failed")
 	}
 	logrus.Info("Output tokens: ", output_tokens)
+	output_text := tk.Decode(output_tokens, false)
+	logrus.Info("Output text: ", output_text)
 }

@@ -12,8 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 type LlamaParams[T tensor.TensorDataType] struct {
@@ -69,34 +67,6 @@ func extractLayerIndex(key string) (int, bool) {
 	return layerIndex, true
 }
 
-func parseModelParams(splittedKey []string, v *interface{}) {
-	switch splittedKey[0] {
-	case "layers":
-		fmt.Println("layers params: splittedKey: ", splittedKey)
-	default:
-		fmt.Println("unknown params: ", splittedKey)
-	}
-}
-
-func parseTensorParams(k *string, v *interface{}) {
-	splittedKey := strings.Split(*k, ".")
-	// switch ...
-	switch splittedKey[0] {
-	case "model":
-		parseModelParams(splittedKey[1:], v)
-	case "lm_head":
-		fmt.Println("lm head params")
-	default:
-		panic("unknown tensor name")
-	}
-
-	// var layer int
-	// if layer, err = strconv.Atoi(splittedKey[2]); err != nil {
-	// 	return nil, fmt.Errorf("failed to parse layer index: %v", err)
-	// }
-	// tensorName := strings.Join(splittedKey[3:len(splittedKey)-1], ".")
-	// fmt.Println("layer: ", layer, " tensorName: ", tensorName)
-}
 func ParamsFromSafeTensors(filePath string) (*LlamaParams[float32], error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -109,8 +79,6 @@ func ParamsFromSafeTensors(filePath string) (*LlamaParams[float32], error) {
 	if err := binary.Read(file, binary.LittleEndian, &headerLen); err != nil {
 		return nil, fmt.Errorf("failed to read header length: %v", err)
 	}
-
-	logrus.Debug("header len: ", headerLen)
 
 	headerData := make([]byte, headerLen)
 

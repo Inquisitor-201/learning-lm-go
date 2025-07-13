@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"learning-lm-go/tensor"
 	"path/filepath"
 	"runtime"
@@ -41,7 +40,7 @@ func TestMLP(t *testing.T) {
 
 	// 3. Execute the MLP function
 	// Note: The actual mlp function implementation must be ported from Rust logic
-	mlpOutput := MLP(
+	mlpOutput := FFN(
 		residual,
 		wUp,
 		wDown,
@@ -94,7 +93,6 @@ func TestLoadSafetensors(t *testing.T) {
 		assertEqual(t, 384, model.Config.Di, "Intermediate dimension mismatch")
 	})
 
-	fmt.Println("model.config: ", model.Config)
 	// 5. Validate weight numerical precision (using floatEqual instead of Rust's float_eq)
 	t.Run("Weight Value Validation", func(t *testing.T) {
 		params := model.Params
