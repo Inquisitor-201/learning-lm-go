@@ -47,12 +47,13 @@ func (t *Tensor[T]) Size() uint32 {
 	return t.length
 }
 
-func (t *Tensor[T]) Reshape(newShape []uint32) {
+func (t *Tensor[T]) Reshape(newShape []uint32) *Tensor[T] {
 	newSize := calculateSize(newShape)
 	if newSize != t.length {
 		panic("new shape does not match the length of the tensor")
 	}
 	t.shape = newShape
+	return t
 }
 
 func (t *Tensor[T]) At(index ...uint32) *T {
