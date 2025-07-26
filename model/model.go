@@ -77,8 +77,7 @@ func (l *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_k ui
 	finalSeq := make([]uint32, len(tokens))
 	copy(finalSeq, tokens)
 
-	n := 50
-	for i := 0; i < n; i++ {
+	for {
 		logits := l.Forward(tensor.NewTensor(tokens, []uint32{uint32(len(tokens))}), cache)
 
 		maxIdx := uint32(0)
@@ -92,6 +91,9 @@ func (l *Llama) Generate(tokens []uint32, maxLen uint32, top_p float32, top_k ui
 
 		tokens = []uint32{maxIdx}
 		finalSeq = append(finalSeq, maxIdx)
+		if maxIdx == l.Config.EosTokenID || uint32(len(finalSeq)) >= maxLen {
+			break
+		}
 	}
 	return finalSeq, nil
 }
